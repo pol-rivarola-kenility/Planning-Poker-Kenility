@@ -35,16 +35,17 @@ export function TicketQueue({ tickets, currentIndex, isHost, onAddTicket, onOpen
           Ticket Queue
         </span>
         <span className="text-xs text-muted-foreground/60">
-          {tickets.filter((_, i) => i > currentIndex).length} remaining
+          {tickets.filter(t => !t.finalScore).length} remaining
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-1.5 min-h-0">
         <AnimatePresence initial={false}>
           {tickets.map((ticket, i) => {
-            const isDone = i < currentIndex
-            const isCurrent = i === currentIndex
-            const isPending = i > currentIndex
+            // Use finalScore as source of truth so estimates persist after session ends
+            const isDone = !!ticket.finalScore
+            const isCurrent = !isDone && i === currentIndex
+            const isPending = !isDone && i !== currentIndex
 
             return (
               <motion.div
