@@ -3,8 +3,8 @@ import '../styles/globals.css'
 import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
-  title: 'Planning Poker',
-  description: 'Real-time planning poker for agile teams',
+  title: "Kenility's Planning Poker",
+  description: 'Real-time planning poker for agile teams — by Kenility',
   icons: { icon: '/favicon.svg' },
 }
 

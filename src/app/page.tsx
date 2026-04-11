@@ -16,7 +16,7 @@ export default function HomePage() {
             <Spade className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Planning Poker
+            Kenility&rsquo;s Planning Poker
           </h1>
           <p className="text-muted-foreground mt-2 text-center">
             Estimate with your team, in real&nbsp;time

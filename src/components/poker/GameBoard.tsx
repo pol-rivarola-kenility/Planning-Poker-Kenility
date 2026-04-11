@@ -11,6 +11,7 @@ import type { SessionState, CardValue } from '@/lib/types'
 
 import { JoinModal } from '@/components/session/JoinModal'
 import { JiraImportModal } from '@/components/session/JiraImportModal'
+import { SendToJiraButton } from '@/components/session/SendToJiraButton'
 import { PlayerList } from './PlayerList'
 import { CurrentTicket } from './CurrentTicket'
 import { CardGrid } from './CardGrid'
@@ -195,12 +196,19 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               <Spade className="w-3.5 h-3.5 text-primary" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-foreground leading-none">
-                {session?.name || 'Planning Poker'}
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {session?.players.filter(p => p.isOnline).length || 0} online
+              {/* App name always visible */}
+              <p className="text-xs font-bold text-primary leading-none tracking-tight">
+                Kenility&rsquo;s Planning Poker
               </p>
+              {/* Session name + player count */}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <h1 className="text-sm font-semibold text-foreground leading-none">
+                  {session?.name || '—'}
+                </h1>
+                <span className="text-xs text-muted-foreground">
+                  · {session?.players.filter(p => p.isOnline).length || 0} online
+                </span>
+              </div>
             </div>
           </div>
 
@@ -226,6 +234,11 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             <code className="hidden sm:block text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded-lg">
               {sessionId}
             </code>
+
+            {/* Send to Jira — shown when there are estimated Jira tickets */}
+            {session && (
+              <SendToJiraButton tickets={session.tickets} />
+            )}
 
             {/* Copy link */}
             <button
