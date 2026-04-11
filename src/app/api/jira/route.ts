@@ -66,15 +66,17 @@ export async function POST(req: NextRequest) {
     ? `Basic ${Buffer.from(`${email}:${token}`).toString('base64')}`
     : `Bearer ${token}`
 
-  const url = `${cleanBase}/rest/api/3/search?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&fields=summary,description`
+  const url = `${cleanBase}/rest/api/3/search/jql`
 
   try {
     const response = await fetch(url, {
+      method: 'POST',
       headers: {
         Authorization: authHeader,
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ jql, maxResults, fields: ['summary', 'description'] }),
       // 10 second timeout
       signal: AbortSignal.timeout(10000),
     })
