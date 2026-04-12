@@ -253,6 +253,55 @@ app.prepare().then(() => {
       broadcastState(io, sessionId)
     })
 
+    // ── Remove ticket (host only) ───────────────────────────────────────────
+    socket.on('game:remove-ticket', ({ ticketId }) => {
+      const { sessionId, playerId } = socket.data
+      const session = sessions.get(sessionId)
+      if (!session || session.hostId !== playerId) return
+
+      const idx = session.tickets.findIndex(t => t.id === ticketId)
+      if (idx === -1) return
+
+      session.tickets.splice(idx, 1)
+
+      if (session.currentTicketIndex === idx) {
+        // Removed the active ticket — try to stay at same index (now points to next), or go waiting
+        session.votes = {}
+        session.votesRevealed = false
+        if (session.tickets.length === 0) {
+          session.currentTicketIndex = -1
+          session.status = 'waiting'
+        } else if (idx < session.tickets.length) {
+          // Next ticket slides into this index
+          session.status = 'voting'
+        } else {
+          // Was the last ticket
+          session.currentTicketIndex = -1
+          session.status = 'waiting'
+        }
+      } else if (idx < session.currentTicketIndex) {
+        // Removed a ticket before the current one — shift index down
+        session.currentTicketIndex -= 1
+      }
+
+      broadcastState(io, sessionId)
+    })
+
+    // ── Jump to ticket (host only) ──────────────────────────────────────────
+    socket.on('game:jump-to-ticket', ({ ticketIndex }) => {
+      const { sessionId, playerId } = socket.data
+      const session = sessions.get(sessionId)
+      if (!session || session.hostId !== playerId) return
+      if (ticketIndex < 0 || ticketIndex >= session.tickets.length) return
+      if (session.tickets[ticketIndex].finalScore) return // skip done tickets
+
+      session.currentTicketIndex = ticketIndex
+      session.votes = {}
+      session.votesRevealed = false
+      session.status = 'voting'
+      broadcastState(io, sessionId)
+    })
+
     // ── Import tickets from Jira (host only) ───────────────────────────────
     socket.on('game:import-tickets', ({ tickets }) => {
       const { sessionId, playerId } = socket.data

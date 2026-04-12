@@ -147,6 +147,15 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     socket.emit('game:import-tickets', { tickets })
   }
 
+  function removeTicket(ticketId: string) {
+    socket.emit('game:remove-ticket', { ticketId })
+  }
+
+  function jumpToTicket(ticketIndex: number) {
+    socket.emit('game:jump-to-ticket', { ticketIndex })
+    setMyVote(undefined)
+  }
+
   async function copyLink() {
     await navigator.clipboard.writeText(window.location.href)
     setCopied(true)
@@ -359,6 +368,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                   isHost={isHost}
                   onAddTicket={addTicket}
                   onOpenJira={() => setShowJira(true)}
+                  onRemoveTicket={removeTicket}
+                  onJumpToTicket={jumpToTicket}
                 />
               </div>
             </aside>
