@@ -53,6 +53,8 @@ export interface ClientToServerEvents {
   'game:add-ticket': (payload: { title: string; description?: string; jiraKey?: string; jiraUrl?: string }) => void
   'game:import-tickets': (payload: { tickets: Omit<Ticket, 'id'>[] }) => void
   'game:restart-ticket': () => void
+  'game:remove-ticket': (payload: { ticketId: string }) => void
+  'game:jump-to-ticket': (payload: { ticketIndex: number }) => void
 }
 
 export interface JiraTicket {
