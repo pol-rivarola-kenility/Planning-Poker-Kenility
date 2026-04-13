@@ -37,6 +37,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const [showJira, setShowJira] = useState(false)
   const [copied, setCopied] = useState(false)
   const [myVote, setMyVote] = useState<CardValue | undefined>()
+  const [connectionError, setConnectionError] = useState('')
   const hasJoined = useRef(false)
 
   // Join session (auto or manual)
@@ -44,6 +45,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     setJoining(true)
     setInitializing(false)
     setJoinError('')
+    setConnectionError('')
 
     const doJoin = () => {
       socket.emit('session:join', { sessionId, playerName: name }, (res) => {
@@ -70,9 +72,32 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
     if (socket.connected) {
       doJoin()
-    } else {
-      socket.once('connect', doJoin)
+      return
     }
+
+    // Wait for connection with timeout
+    const timeout = setTimeout(() => {
+      socket.off('connect', onConnect)
+      socket.off('connect_error', onError)
+      setJoining(false)
+      setConnectionError('Could not reach the server. Please try refreshing.')
+    }, 10000)
+
+    const onConnect = () => {
+      clearTimeout(timeout)
+      socket.off('connect_error', onError)
+      doJoin()
+    }
+
+    const onError = () => {
+      clearTimeout(timeout)
+      socket.off('connect', onConnect)
+      setJoining(false)
+      setConnectionError('Connection failed. Please try refreshing.')
+    }
+
+    socket.once('connect', onConnect)
+    socket.once('connect_error', onError)
   }, [sessionId, socket, router])
 
   // Auto-join if we have a stored name, else show join modal
@@ -387,12 +412,24 @@ export function GameBoard({ sessionId }: GameBoardProps) {
           </div>
         </div>
       ) : (
-        /* Loading state */
+        /* Loading / error state */
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground">Connecting...</p>
-          </div>
+          {connectionError ? (
+            <div className="flex flex-col items-center gap-4 text-center px-4">
+              <p className="text-sm text-muted-foreground">{connectionError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
+              >
+                Refresh
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Connecting...</p>
+            </div>
+          )}
         </div>
       )}
     </div>
