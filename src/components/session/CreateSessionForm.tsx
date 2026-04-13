@@ -23,7 +23,6 @@ export function CreateSessionForm() {
       socket.emit('session:create', { sessionName, playerName }, (res) => {
         setLoading(false)
         if (res.success && res.sessionId) {
-          // Remember who we are
           localStorage.setItem('pp_player_name', playerName.trim())
           localStorage.setItem('pp_session_id', res.sessionId)
           router.push(`/session/${res.sessionId}`)
@@ -35,10 +34,31 @@ export function CreateSessionForm() {
 
     if (socket.connected) {
       doCreate()
-    } else {
-      socket.once('connect', doCreate)
-      socket.connect()
+      return
     }
+
+    // Wait for connection with a timeout
+    const timeout = setTimeout(() => {
+      socket.off('connect', doCreate)
+      socket.off('connect_error', onError)
+      setLoading(false)
+      toast.error('Could not connect to server — please try again')
+    }, 8000)
+
+    const onError = (err: Error) => {
+      clearTimeout(timeout)
+      socket.off('connect', doCreate)
+      setLoading(false)
+      toast.error(`Connection failed: ${err.message}`)
+    }
+
+    socket.once('connect', () => {
+      clearTimeout(timeout)
+      socket.off('connect_error', onError)
+      doCreate()
+    })
+    socket.once('connect_error', onError)
+    socket.connect()
   }
 
   return (
