@@ -38,6 +38,14 @@ function TicketSendButton({ ticket }: { ticket: Ticket }) {
   const [baseUrl, setBaseUrl] = useState('')
   const [email, setEmail] = useState('')
   const [token, setToken] = useState('')
+  const [hasServerDefaults, setHasServerDefaults] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/jira/config')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.hasToken && d?.baseUrl) setHasServerDefaults(true) })
+      .catch(() => {})
+  }, [])
 
   // Only render for Jira tickets with a final score
   if (!ticket.jiraKey || !ticket.finalScore) return null
@@ -45,7 +53,7 @@ function TicketSendButton({ ticket }: { ticket: Ticket }) {
   const storyPoints = parseFloat(ticket.finalScore)
   if (isNaN(storyPoints)) return null
 
-  async function sendToJira(creds: JiraCreds) {
+  async function sendToJira(creds: JiraCreds | null) {
     setStatus('loading')
     setErrorMsg('')
     try {
@@ -53,9 +61,9 @@ function TicketSendButton({ ticket }: { ticket: Ticket }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          baseUrl: creds.baseUrl,
-          email: creds.email || undefined,
-          token: creds.token,
+          baseUrl: creds?.baseUrl || '',
+          email: creds?.email || undefined,
+          token: creds?.token || '',
           updates: [{ jiraKey: ticket.jiraKey!, storyPoints }],
         }),
       })
@@ -79,7 +87,7 @@ function TicketSendButton({ ticket }: { ticket: Ticket }) {
   function handleClick() {
     if (status === 'success') return
     const creds = loadCreds()
-    if (creds) {
+    if (creds || hasServerDefaults) {
       sendToJira(creds)
     } else {
       setShowCredForm(true)

@@ -47,14 +47,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { baseUrl, email, token, jql, maxResults = 50 } = body
+  const resolvedBaseUrl = (body.baseUrl || process.env.JIRA_BASE_URL || '').trim()
+  const resolvedEmail   = (body.email   || process.env.JIRA_EMAIL   || '').trim()
+  const resolvedToken   = (body.token   || process.env.JIRA_TOKEN   || '').trim()
+  const { jql, maxResults = 50 } = body
 
-  if (!baseUrl || !token || !jql) {
+  if (!resolvedBaseUrl || !resolvedToken || !jql) {
     return NextResponse.json({ error: 'baseUrl, token, and jql are required' }, { status: 400 })
   }
 
   // Validate baseUrl is https
-  const cleanBase = baseUrl.replace(/\/$/, '')
+  const cleanBase = resolvedBaseUrl.replace(/\/$/, '')
   if (!cleanBase.startsWith('https://') && !cleanBase.startsWith('http://')) {
     return NextResponse.json({ error: 'baseUrl must start with https://' }, { status: 400 })
   }
@@ -62,9 +65,9 @@ export async function POST(req: NextRequest) {
   // Build auth header
   // Jira Cloud: Basic auth with email:token
   // Jira Server/DC: Bearer token (PAT)
-  const authHeader = email
-    ? `Basic ${Buffer.from(`${email}:${token}`).toString('base64')}`
-    : `Bearer ${token}`
+  const authHeader = resolvedEmail
+    ? `Basic ${Buffer.from(`${resolvedEmail}:${resolvedToken}`).toString('base64')}`
+    : `Bearer ${resolvedToken}`
 
   const url = `${cleanBase}/rest/api/3/search/jql`
 

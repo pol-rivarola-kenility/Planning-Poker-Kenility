@@ -69,16 +69,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { baseUrl, email, token, updates } = body
+  const resolvedBaseUrl = (body.baseUrl || process.env.JIRA_BASE_URL || '').trim()
+  const resolvedEmail   = (body.email   || process.env.JIRA_EMAIL   || '').trim()
+  const resolvedToken   = (body.token   || process.env.JIRA_TOKEN   || '').trim()
+  const { updates } = body
 
-  if (!baseUrl || !token || !Array.isArray(updates) || updates.length === 0) {
+  if (!resolvedBaseUrl || !resolvedToken || !Array.isArray(updates) || updates.length === 0) {
     return NextResponse.json({ error: 'baseUrl, token and updates[] are required' }, { status: 400 })
   }
 
-  const cleanBase = baseUrl.replace(/\/$/, '')
-  const authHeader = email
-    ? `Basic ${Buffer.from(`${email}:${token}`).toString('base64')}`
-    : `Bearer ${token}`
+  const cleanBase = resolvedBaseUrl.replace(/\/$/, '')
+  const authHeader = resolvedEmail
+    ? `Basic ${Buffer.from(`${resolvedEmail}:${resolvedToken}`).toString('base64')}`
+    : `Bearer ${resolvedToken}`
 
   const results = await Promise.all(
     updates.map(({ jiraKey, storyPoints }) =>
