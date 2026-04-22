@@ -302,6 +302,26 @@ app.prepare().then(() => {
       broadcastState(io, sessionId)
     })
 
+    // ── Reorder tickets (host only) ────────────────────────────────────────
+    socket.on('game:reorder-tickets', ({ ticketIds }) => {
+      const { sessionId, playerId } = socket.data
+      const session = sessions.get(sessionId)
+      if (!session || session.hostId !== playerId) return
+      if (!Array.isArray(ticketIds) || ticketIds.length !== session.tickets.length) return
+
+      const currentTicketId = session.tickets[session.currentTicketIndex]?.id
+
+      const ticketMap = new Map(session.tickets.map(t => [t.id, t]))
+      const reordered = ticketIds.map(id => ticketMap.get(id)).filter(Boolean)
+      if (reordered.length !== session.tickets.length) return
+
+      session.tickets = reordered
+      session.currentTicketIndex = session.tickets.findIndex(t => t.id === currentTicketId)
+      if (session.currentTicketIndex === -1) session.currentTicketIndex = 0
+
+      broadcastState(io, sessionId)
+    })
+
     // ── Import tickets from Jira (host only) ───────────────────────────────
     socket.on('game:import-tickets', ({ tickets }) => {
       const { sessionId, playerId } = socket.data

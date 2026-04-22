@@ -55,6 +55,7 @@ export interface ClientToServerEvents {
   'game:restart-ticket': () => void
   'game:remove-ticket': (payload: { ticketId: string }) => void
   'game:jump-to-ticket': (payload: { ticketIndex: number }) => void
+  'game:reorder-tickets': (payload: { ticketIds: string[] }) => void
 }
 
 export interface JiraTicket {
