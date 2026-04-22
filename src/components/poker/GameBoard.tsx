@@ -181,6 +181,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     setMyVote(undefined)
   }
 
+  function reorderTickets(ticketIds: string[]) {
+    socket.emit('game:reorder-tickets', { ticketIds })
+  }
+
   async function copyLink() {
     await navigator.clipboard.writeText(window.location.href)
     setCopied(true)
@@ -395,6 +399,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                   onOpenJira={() => setShowJira(true)}
                   onRemoveTicket={removeTicket}
                   onJumpToTicket={jumpToTicket}
+                  onReorderTickets={reorderTickets}
                 />
               </div>
             </aside>
@@ -408,6 +413,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               isHost={isHost}
               onAddTicket={addTicket}
               onOpenJira={() => setShowJira(true)}
+              onReorderTickets={reorderTickets}
             />
           </div>
         </div>
