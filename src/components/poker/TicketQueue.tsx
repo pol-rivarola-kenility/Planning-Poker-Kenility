@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Check, Clock, ChevronRight, Tag, Send, Loader2, X, AlertCircle, ExternalLink } from 'lucide-react'
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion'
+import { Plus, Check, Clock, ChevronRight, Tag, Send, Loader2, X, AlertCircle, ExternalLink, GripVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Ticket } from '@/lib/types'
 import { toast } from 'sonner'
@@ -15,6 +15,7 @@ interface TicketQueueProps {
   onOpenJira: () => void
   onRemoveTicket?: (ticketId: string) => void
   onJumpToTicket?: (index: number) => void
+  onReorderTickets?: (ticketIds: string[]) => void
 }
 
 const CREDS_KEY = 'pp_jira_creds'
@@ -47,7 +48,6 @@ function TicketSendButton({ ticket }: { ticket: Ticket }) {
       .catch(() => {})
   }, [])
 
-  // Only render for Jira tickets with a final score
   if (!ticket.jiraKey || !ticket.finalScore) return null
 
   const storyPoints = parseFloat(ticket.finalScore)
@@ -127,7 +127,6 @@ function TicketSendButton({ ticket }: { ticket: Ticket }) {
         {status === 'idle' && <Send className="w-3 h-3" />}
       </button>
 
-      {/* Inline credential prompt */}
       <AnimatePresence>
         {showCredForm && (
           <motion.div
@@ -183,11 +182,117 @@ function TicketSendButton({ ticket }: { ticket: Ticket }) {
   )
 }
 
+// ── Draggable ticket item (host view) ─────────────────────────────────────────
+function DraggableTicketItem({
+  ticket,
+  index,
+  currentIndex,
+  isHost,
+  onRemoveTicket,
+  onJumpToTicket,
+  onDragEnd,
+}: {
+  ticket: Ticket
+  index: number
+  currentIndex: number
+  isHost: boolean
+  onRemoveTicket?: (id: string) => void
+  onJumpToTicket?: (index: number) => void
+  onDragEnd: () => void
+}) {
+  const controls = useDragControls()
+  const isDone = !!ticket.finalScore
+  const isCurrent = !isDone && index === currentIndex
+  const isPending = !isDone && index !== currentIndex
+  const canJump = isHost && isPending && !!onJumpToTicket
+
+  return (
+    <Reorder.Item
+      value={ticket}
+      dragListener={false}
+      dragControls={controls}
+      onDragEnd={onDragEnd}
+      className={cn(
+        'group flex items-start gap-2.5 px-3 py-2.5 rounded-xl border text-sm transition-colors list-none',
+        isCurrent && 'bg-primary/10 border-primary/25 text-foreground',
+        isDone && 'bg-muted/30 border-border/30 text-muted-foreground',
+        isPending && 'bg-card border-border hover:bg-muted/40 text-foreground',
+        canJump && 'cursor-pointer',
+      )}
+      onClick={canJump ? () => onJumpToTicket!(index) : undefined}
+    >
+      {/* Drag handle */}
+      <div
+        onPointerDown={e => controls.start(e)}
+        className="flex-shrink-0 mt-0.5 cursor-grab active:cursor-grabbing touch-none text-muted-foreground/30 hover:text-muted-foreground/70 transition-colors"
+      >
+        <GripVertical className="w-3.5 h-3.5" />
+      </div>
+
+      {/* Status icon */}
+      <div className="flex-shrink-0 mt-0.5">
+        {isDone ? (
+          <Check className="w-3.5 h-3.5 text-emerald-400" />
+        ) : isCurrent ? (
+          <ChevronRight className="w-3.5 h-3.5 text-primary" />
+        ) : (
+          <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />
+        )}
+      </div>
+
+      {/* Ticket info */}
+      <div className="flex-1 min-w-0">
+        {ticket.jiraKey && (
+          ticket.jiraUrl ? (
+            <a
+              href={ticket.jiraUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="text-xs font-mono text-primary/70 mb-0.5 hover:underline inline-flex items-center gap-0.5"
+            >
+              {ticket.jiraKey}
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          ) : (
+            <span className="text-xs font-mono text-primary/70 block mb-0.5">{ticket.jiraKey}</span>
+          )
+        )}
+        <p className="text-xs leading-snug truncate">{ticket.title}</p>
+        {isDone && ticket.finalScore && (
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-xs font-bold text-emerald-400">
+              → {ticket.finalScore} pts
+            </span>
+            <TicketSendButton ticket={ticket} />
+          </div>
+        )}
+      </div>
+
+      {/* Remove button */}
+      {isHost && onRemoveTicket && (
+        <button
+          onClick={e => { e.stopPropagation(); onRemoveTicket(ticket.id) }}
+          className="flex-shrink-0 opacity-0 group-hover:opacity-100 mt-0.5 text-muted-foreground/40 hover:text-destructive transition-all"
+          title="Remove ticket"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </Reorder.Item>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
-export function TicketQueue({ tickets, currentIndex, isHost, onAddTicket, onOpenJira, onRemoveTicket, onJumpToTicket }: TicketQueueProps) {
+export function TicketQueue({ tickets, currentIndex, isHost, onAddTicket, onOpenJira, onRemoveTicket, onJumpToTicket, onReorderTickets }: TicketQueueProps) {
   const [showAdd, setShowAdd] = useState(false)
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
+  const [orderedTickets, setOrderedTickets] = useState<Ticket[]>(tickets)
+
+  useEffect(() => {
+    setOrderedTickets(tickets)
+  }, [tickets])
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -209,87 +314,88 @@ export function TicketQueue({ tickets, currentIndex, isHost, onAddTicket, onOpen
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-1.5 min-h-0">
-        <AnimatePresence initial={false}>
-          {tickets.map((ticket, i) => {
-            // Use finalScore as source of truth so estimates persist after session ends
-            const isDone = !!ticket.finalScore
-            const isCurrent = !isDone && i === currentIndex
-            const isPending = !isDone && i !== currentIndex
-
-            const canJump = isHost && isPending && !!onJumpToTicket
-
-            return (
-              <motion.div
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {isHost ? (
+          <Reorder.Group
+            axis="y"
+            values={orderedTickets}
+            onReorder={setOrderedTickets}
+            className="space-y-1.5"
+          >
+            {orderedTickets.map((ticket, i) => (
+              <DraggableTicketItem
                 key={ticket.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                onClick={canJump ? () => onJumpToTicket!(i) : undefined}
-                className={cn(
-                  'group flex items-start gap-2.5 px-3 py-2.5 rounded-xl border text-sm transition-colors',
-                  isCurrent && 'bg-primary/10 border-primary/25 text-foreground',
-                  isDone && 'bg-muted/30 border-border/30 text-muted-foreground',
-                  isPending && 'bg-card border-border hover:bg-muted/40 text-foreground',
-                  canJump && 'cursor-pointer',
-                )}
-              >
-                {/* Status icon */}
-                <div className="flex-shrink-0 mt-0.5">
-                  {isDone ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : isCurrent ? (
-                    <ChevronRight className="w-3.5 h-3.5 text-primary" />
-                  ) : (
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />
-                  )}
-                </div>
+                ticket={ticket}
+                index={i}
+                currentIndex={currentIndex}
+                isHost={isHost}
+                onRemoveTicket={onRemoveTicket}
+                onJumpToTicket={onJumpToTicket}
+                onDragEnd={() => onReorderTickets?.(orderedTickets.map(t => t.id))}
+              />
+            ))}
+          </Reorder.Group>
+        ) : (
+          <AnimatePresence initial={false}>
+            <div className="space-y-1.5">
+              {tickets.map((ticket, i) => {
+                const isDone = !!ticket.finalScore
+                const isCurrent = !isDone && i === currentIndex
+                const isPending = !isDone && i !== currentIndex
 
-                {/* Ticket info */}
-                <div className="flex-1 min-w-0">
-                  {ticket.jiraKey && (
-                    ticket.jiraUrl ? (
-                      <a
-                        href={ticket.jiraUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        className="text-xs font-mono text-primary/70 mb-0.5 hover:underline inline-flex items-center gap-0.5"
-                      >
-                        {ticket.jiraKey}
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    ) : (
-                      <span className="text-xs font-mono text-primary/70 block mb-0.5">{ticket.jiraKey}</span>
-                    )
-                  )}
-                  <p className="text-xs leading-snug truncate">{ticket.title}</p>
-                  {isDone && ticket.finalScore && (
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs font-bold text-emerald-400">
-                        → {ticket.finalScore} pts
-                      </span>
-                      {/* Per-ticket Jira send button */}
-                      <TicketSendButton ticket={ticket} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Remove button (host only) */}
-                {isHost && onRemoveTicket && (
-                  <button
-                    onClick={e => { e.stopPropagation(); onRemoveTicket(ticket.id) }}
-                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 mt-0.5 text-muted-foreground/40 hover:text-destructive transition-all"
-                    title="Remove ticket"
+                return (
+                  <motion.div
+                    key={ticket.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className={cn(
+                      'flex items-start gap-2.5 px-3 py-2.5 rounded-xl border text-sm transition-colors',
+                      isCurrent && 'bg-primary/10 border-primary/25 text-foreground',
+                      isDone && 'bg-muted/30 border-border/30 text-muted-foreground',
+                      isPending && 'bg-card border-border text-foreground',
+                    )}
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </motion.div>
-            )
-          })}
-        </AnimatePresence>
+                    <div className="flex-shrink-0 mt-0.5">
+                      {isDone ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : isCurrent ? (
+                        <ChevronRight className="w-3.5 h-3.5 text-primary" />
+                      ) : (
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {ticket.jiraKey && (
+                        ticket.jiraUrl ? (
+                          <a
+                            href={ticket.jiraUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-mono text-primary/70 mb-0.5 hover:underline inline-flex items-center gap-0.5"
+                          >
+                            {ticket.jiraKey}
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        ) : (
+                          <span className="text-xs font-mono text-primary/70 block mb-0.5">{ticket.jiraKey}</span>
+                        )
+                      )}
+                      <p className="text-xs leading-snug truncate">{ticket.title}</p>
+                      {isDone && ticket.finalScore && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-xs font-bold text-emerald-400">→ {ticket.finalScore} pts</span>
+                          <TicketSendButton ticket={ticket} />
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </AnimatePresence>
+        )}
 
         {tickets.length === 0 && (
           <p className="text-xs text-muted-foreground/50 text-center py-4">
