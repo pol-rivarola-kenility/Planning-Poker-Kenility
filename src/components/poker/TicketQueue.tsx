@@ -258,7 +258,7 @@ function DraggableTicketItem({
             <span className="text-xs font-mono text-primary/70 block mb-0.5">{ticket.jiraKey}</span>
           )
         )}
-        <p className="text-xs leading-snug truncate">{ticket.title}</p>
+        <p className="text-xs leading-snug break-words">{ticket.title}</p>
         {isDone && ticket.finalScore && (
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-xs font-bold text-emerald-400">
@@ -382,7 +382,7 @@ export function TicketQueue({ tickets, currentIndex, isHost, onAddTicket, onOpen
                           <span className="text-xs font-mono text-primary/70 block mb-0.5">{ticket.jiraKey}</span>
                         )
                       )}
-                      <p className="text-xs leading-snug truncate">{ticket.title}</p>
+                      <p className="text-xs leading-snug break-words">{ticket.title}</p>
                       {isDone && ticket.finalScore && (
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-xs font-bold text-emerald-400">→ {ticket.finalScore} pts</span>
