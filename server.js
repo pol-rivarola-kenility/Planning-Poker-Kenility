@@ -18,6 +18,17 @@ const sessions = new Map()
 
 const SESSIONS_FILE = path.join(__dirname, 'sessions.json')
 
+function scheduleCleanup(sessionId) {
+  setTimeout(() => {
+    const s = sessions.get(sessionId)
+    if (s && s.players.every(p => !p.isOnline)) {
+      sessions.delete(sessionId)
+      console.log(`[session] cleaned up ${sessionId}`)
+      scheduleSave()
+    }
+  }, 60 * 60 * 1000)
+}
+
 function loadSessions() {
   try {
     if (!fs.existsSync(SESSIONS_FILE)) return
@@ -25,6 +36,7 @@ function loadSessions() {
     for (const [id, session] of Object.entries(data)) {
       session.players.forEach(p => { p.isOnline = false })
       sessions.set(id, session)
+      scheduleCleanup(id)
     }
     console.log(`[sessions] loaded ${sessions.size} session(s) from disk`)
   } catch (err) {
@@ -399,18 +411,8 @@ app.prepare().then(() => {
         broadcastState(io, sessionId)
       }
 
-      // Clean up empty sessions after 1 hour
       const allOffline = session.players.every(p => !p.isOnline)
-      if (allOffline) {
-        setTimeout(() => {
-          const s = sessions.get(sessionId)
-          if (s && s.players.every(p => !p.isOnline)) {
-            sessions.delete(sessionId)
-            console.log(`[session] cleaned up ${sessionId}`)
-            scheduleSave()
-          }
-        }, 60 * 60 * 1000)
-      }
+      if (allOffline) scheduleCleanup(sessionId)
     })
   })
 
