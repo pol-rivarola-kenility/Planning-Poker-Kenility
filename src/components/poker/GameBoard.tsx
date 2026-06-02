@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Copy, Check, Spade } from 'lucide-react'
 
-import { getSocket } from '@/lib/socket-client'
+import { getSocket, getOrCreateStableId } from '@/lib/socket-client'
 import type { SessionState, CardValue } from '@/lib/types'
 
 import { JoinModal } from '@/components/session/JoinModal'
@@ -38,6 +38,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const [copied, setCopied] = useState(false)
   const [myVote, setMyVote] = useState<CardValue | undefined>()
   const [connectionError, setConnectionError] = useState('')
+  const [isConnected, setIsConnected] = useState(true)
   const hasJoined = useRef(false)
 
   // Join session (auto or manual)
@@ -47,8 +48,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     setJoinError('')
     setConnectionError('')
 
+    const stableId = getOrCreateStableId()
+
     const doJoin = () => {
-      socket.emit('session:join', { sessionId, playerName: name }, (res) => {
+      socket.emit('session:join', { sessionId, playerName: name, stableId }, (res) => {
         setJoining(false)
         if (res.success && res.state) {
           setMyId(socket.id || '')
@@ -132,15 +135,23 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     return () => { socket.off('session:state', onState) }
   }, [socket, playerName])
 
-  // Reconnect handler
+  // Reconnect + disconnect handler
   useEffect(() => {
-    function onReconnect() {
+    function onConnect() {
+      setIsConnected(true)
       if (playerName && hasJoined.current) {
         joinSession(playerName)
       }
     }
-    socket.on('connect', onReconnect)
-    return () => { socket.off('connect', onReconnect) }
+    function onDisconnect() {
+      if (hasJoined.current) setIsConnected(false)
+    }
+    socket.on('connect', onConnect)
+    socket.on('disconnect', onDisconnect)
+    return () => {
+      socket.off('connect', onConnect)
+      socket.off('disconnect', onDisconnect)
+    }
   }, [socket, playerName, joinSession])
 
   // ─── Game actions ──────────────────────────────────────────────────────────
@@ -204,6 +215,17 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Reconnecting overlay */}
+      {!isConnected && session !== null && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-foreground">Connection lost</p>
+            <p className="text-xs text-muted-foreground">Reconnecting automatically...</p>
+          </div>
+        </div>
+      )}
+
       {/* Join Modal */}
       <AnimatePresence>
         {showJoin && (

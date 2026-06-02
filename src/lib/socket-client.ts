@@ -8,8 +8,9 @@ export function getSocket(): Socket<ServerToClientEvents, ClientToServerEvents> 
     socket = io({
       path: '/api/socket.io',
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     })
   }
   return socket
@@ -20,4 +21,13 @@ export function disconnectSocket() {
     socket.disconnect()
     socket = null
   }
+}
+
+export function getOrCreateStableId(): string {
+  let id = localStorage.getItem('pp_player_id')
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem('pp_player_id', id)
+  }
+  return id
 }

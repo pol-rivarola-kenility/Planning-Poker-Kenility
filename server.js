@@ -2,6 +2,8 @@ const { createServer } = require('http')
 const { parse } = require('url')
 const next = require('next')
 const { Server } = require('socket.io')
+const fs = require('fs')
+const path = require('path')
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = 'localhost'
@@ -10,9 +12,38 @@ const port = parseInt(process.env.PORT || '3000', 10)
 const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
 
-// ─── In-memory session store ──────────────────────────────────────────────────
+// ─── Session store with file persistence ─────────────────────────────────────
 /** @type {Map<string, import('./src/lib/types').SessionState & { votes: Record<string, string> }>} */
 const sessions = new Map()
+
+const SESSIONS_FILE = path.join(__dirname, 'sessions.json')
+
+function loadSessions() {
+  try {
+    if (!fs.existsSync(SESSIONS_FILE)) return
+    const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'))
+    for (const [id, session] of Object.entries(data)) {
+      session.players.forEach(p => { p.isOnline = false })
+      sessions.set(id, session)
+    }
+    console.log(`[sessions] loaded ${sessions.size} session(s) from disk`)
+  } catch (err) {
+    console.error('[sessions] failed to load sessions file:', err.message)
+  }
+}
+
+let saveTimer = null
+function scheduleSave() {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    const data = Object.fromEntries(sessions)
+    fs.writeFile(SESSIONS_FILE, JSON.stringify(data), (err) => {
+      if (err) console.error('[sessions] failed to save:', err.message)
+    })
+  }, 2000)
+}
+
+loadSessions()
 
 function generateId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -59,6 +90,7 @@ function broadcastState(io, sessionId) {
   const session = sessions.get(sessionId)
   if (session) {
     io.to(sessionId).emit('session:state', toClientState(session))
+    scheduleSave()
   }
 }
 
@@ -86,7 +118,7 @@ app.prepare().then(() => {
     console.log('[socket] connected', socket.id)
 
     // ── Create session ──────────────────────────────────────────────────────
-    socket.on('session:create', ({ sessionName, playerName }, callback) => {
+    socket.on('session:create', ({ sessionName, playerName, stableId }, callback) => {
       if (!sessionName?.trim() || !playerName?.trim()) {
         return callback({ success: false, error: 'Missing name' })
       }
@@ -94,6 +126,7 @@ app.prepare().then(() => {
       const sessionId = generateId()
       const player = {
         id: socket.id,
+        stableId: stableId || socket.id,
         name: playerName.trim(),
         isHost: true,
         isOnline: true,
@@ -121,7 +154,7 @@ app.prepare().then(() => {
     })
 
     // ── Join session ────────────────────────────────────────────────────────
-    socket.on('session:join', ({ sessionId, playerName }, callback) => {
+    socket.on('session:join', ({ sessionId, playerName, stableId }, callback) => {
       const session = sessions.get(sessionId)
       if (!session) {
         return callback({ success: false, error: 'Session not found. It may have ended.' })
@@ -132,12 +165,15 @@ app.prepare().then(() => {
 
       const trimmed = playerName.trim()
 
-      // Reconnect: find existing player by name
-      let player = session.players.find(p => p.name === trimmed)
+      // Reconnect: find existing player by stableId first, fall back to name
+      let player = stableId ? session.players.find(p => p.stableId === stableId) : null
+      if (!player) player = session.players.find(p => p.name === trimmed) || null
+
       if (player) {
         // Update socket id (reconnect)
         const oldId = player.id
         player.id = socket.id
+        player.stableId = stableId || player.stableId
         player.isOnline = true
         // Transfer host if this was the host
         if (session.hostId === oldId) {
@@ -152,6 +188,7 @@ app.prepare().then(() => {
         // New player
         player = {
           id: socket.id,
+          stableId: stableId || socket.id,
           name: trimmed,
           isHost: false,
           isOnline: true,
@@ -370,6 +407,7 @@ app.prepare().then(() => {
           if (s && s.players.every(p => !p.isOnline)) {
             sessions.delete(sessionId)
             console.log(`[session] cleaned up ${sessionId}`)
+            scheduleSave()
           }
         }, 60 * 60 * 1000)
       }

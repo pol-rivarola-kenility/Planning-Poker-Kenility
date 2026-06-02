@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { getSocket } from '@/lib/socket-client'
+import { getSocket, getOrCreateStableId } from '@/lib/socket-client'
 import { ArrowRight, Loader2 } from 'lucide-react'
 
 export function CreateSessionForm() {
@@ -19,8 +19,10 @@ export function CreateSessionForm() {
 
     const socket = getSocket()
 
+    const stableId = getOrCreateStableId()
+
     const doCreate = () => {
-      socket.emit('session:create', { sessionName, playerName }, (res) => {
+      socket.emit('session:create', { sessionName, playerName, stableId }, (res) => {
         setLoading(false)
         if (res.success && res.sessionId) {
           localStorage.setItem('pp_player_name', playerName.trim())

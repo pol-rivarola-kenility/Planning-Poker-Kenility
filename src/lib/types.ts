@@ -40,11 +40,11 @@ export interface ServerToClientEvents {
 
 export interface ClientToServerEvents {
   'session:create': (
-    payload: { sessionName: string; playerName: string },
+    payload: { sessionName: string; playerName: string; stableId?: string },
     callback: (res: { success: boolean; sessionId?: string; state?: SessionState; error?: string }) => void
   ) => void
   'session:join': (
-    payload: { sessionId: string; playerName: string },
+    payload: { sessionId: string; playerName: string; stableId?: string },
     callback: (res: { success: boolean; state?: SessionState; error?: string }) => void
   ) => void
   'game:vote': (payload: { value: CardValue }) => void
