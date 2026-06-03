@@ -26,12 +26,16 @@ export function CreateSessionForm() {
       const saved = localStorage.getItem(JIRA_STORAGE_KEY)
       if (saved) {
         const creds = JSON.parse(saved)
-        if (creds.baseUrl) setJiraBaseUrl(creds.baseUrl)
-        if (creds.email)   setJiraEmail(creds.email)
-        if (creds.token)   setJiraToken(creds.token)
-        setJiraOpen(true) // auto-expand if they already have creds
+        setJiraBaseUrl(creds.baseUrl || 'https://truvideo.atlassian.net')
+        if (creds.email) setJiraEmail(creds.email)
+        if (creds.token) setJiraToken(creds.token)
+        setJiraOpen(true)
+      } else {
+        setJiraBaseUrl('https://truvideo.atlassian.net')
       }
-    } catch {}
+    } catch {
+      setJiraBaseUrl('https://truvideo.atlassian.net')
+    }
   }, [])
 
   function saveJiraCreds() {

@@ -33,11 +33,15 @@ export function JiraImportModal({ onImport, onClose }: JiraImportModalProps) {
         const saved = localStorage.getItem(STORAGE_KEY)
         if (saved) {
           const creds: SavedCreds = JSON.parse(saved)
-          if (creds.baseUrl) setBaseUrl(creds.baseUrl)
-          if (creds.email)   setEmail(creds.email)
-          if (creds.token)   setToken(creds.token)
+          setBaseUrl(creds.baseUrl || 'https://truvideo.atlassian.net')
+          if (creds.email) setEmail(creds.email)
+          if (creds.token) setToken(creds.token)
+        } else {
+          setBaseUrl('https://truvideo.atlassian.net')
         }
-      } catch {}
+      } catch {
+        setBaseUrl('https://truvideo.atlassian.net')
+      }
 
       // Load default project from server (env var only, no credentials)
       try {
