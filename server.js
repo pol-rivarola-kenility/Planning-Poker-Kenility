@@ -16,7 +16,7 @@ const handle = app.getRequestHandler()
 /** @type {Map<string, import('./src/lib/types').SessionState & { votes: Record<string, string> }>} */
 const sessions = new Map()
 
-const SESSIONS_FILE = path.join(__dirname, 'sessions.json')
+const SESSIONS_FILE = process.env.SESSIONS_FILE || path.join(__dirname, 'sessions.json')
 
 function scheduleCleanup(sessionId) {
   setTimeout(() => {
