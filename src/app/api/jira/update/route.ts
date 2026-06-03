@@ -69,9 +69,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const resolvedBaseUrl = (body.baseUrl || process.env.JIRA_BASE_URL || '').trim()
-  const resolvedEmail   = (body.email   || process.env.JIRA_EMAIL   || '').trim()
-  const resolvedToken   = (body.token   || process.env.JIRA_TOKEN   || '').trim()
+  const resolvedBaseUrl = (body.baseUrl || '').trim()
+  const resolvedEmail   = (body.email   || '').trim()
+  const resolvedToken   = (body.token   || '').trim()
   const { updates } = body
 
   if (!resolvedBaseUrl || !resolvedToken || !Array.isArray(updates) || updates.length === 0) {

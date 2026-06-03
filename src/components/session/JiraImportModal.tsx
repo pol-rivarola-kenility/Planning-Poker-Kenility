@@ -14,7 +14,6 @@ interface JiraImportModalProps {
 const STORAGE_KEY = 'pp_jira_creds'
 
 interface SavedCreds { baseUrl: string; email: string; token: string }
-interface ServerDefaults { baseUrl: string; email: string; hasToken: boolean; defaultProject: string }
 
 export function JiraImportModal({ onImport, onClose }: JiraImportModalProps) {
   const [baseUrl, setBaseUrl] = useState('')
@@ -25,49 +24,41 @@ export function JiraImportModal({ onImport, onClose }: JiraImportModalProps) {
   const [error, setError] = useState('')
   const [tickets, setTickets] = useState<JiraTicket[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [serverDefaults, setServerDefaults] = useState<ServerDefaults | null>(null)
 
-  // Load server defaults then localStorage overrides
+  // Load credentials and default project from localStorage + server config
   useEffect(() => {
     async function loadDefaults() {
-      let defaults: ServerDefaults = { baseUrl: '', email: '', hasToken: false, defaultProject: '' }
-      try {
-        const res = await fetch('/api/jira/config')
-        if (res.ok) defaults = await res.json()
-      } catch {}
-      setServerDefaults(defaults)
-
-      // localStorage overrides server defaults
+      // Load Jira creds from localStorage
       try {
         const saved = localStorage.getItem(STORAGE_KEY)
         if (saved) {
           const creds: SavedCreds = JSON.parse(saved)
-          setBaseUrl(creds.baseUrl || defaults.baseUrl)
-          setEmail(creds.email || defaults.email)
-          setToken(creds.token || '')
-        } else {
-          setBaseUrl(defaults.baseUrl)
-          setEmail(defaults.email)
+          if (creds.baseUrl) setBaseUrl(creds.baseUrl)
+          if (creds.email)   setEmail(creds.email)
+          if (creds.token)   setToken(creds.token)
+        }
+      } catch {}
+
+      // Load default project from server (env var only, no credentials)
+      try {
+        const res = await fetch('/api/jira/config')
+        if (res.ok) {
+          const { defaultProject } = await res.json()
+          setJql(defaultProject
+            ? `project = ${defaultProject} ORDER BY created DESC`
+            : 'project = PROJ ORDER BY created DESC'
+          )
         }
       } catch {
-        setBaseUrl(defaults.baseUrl)
-        setEmail(defaults.email)
+        setJql('project = PROJ ORDER BY created DESC')
       }
-
-      const project = defaults.defaultProject
-      setJql(project ? `project = ${project} ORDER BY created DESC` : 'project = PROJ ORDER BY created DESC')
     }
     loadDefaults()
   }, [])
 
-  const usingServerToken = !token.trim() && !!serverDefaults?.hasToken
-  const usingServerBase  = !baseUrl.trim() && !!serverDefaults?.baseUrl
-
   async function handleFetch(e: React.FormEvent) {
     e.preventDefault()
-    const needsBase  = !baseUrl.trim() && !serverDefaults?.baseUrl
-    const needsToken = !token.trim() && !serverDefaults?.hasToken
-    if (needsBase || needsToken || !jql.trim()) return
+    if (!baseUrl.trim() || !token.trim() || !jql.trim()) return
 
     setLoading(true)
     setError('')
@@ -179,13 +170,12 @@ export function JiraImportModal({ onImport, onClose }: JiraImportModalProps) {
             <form onSubmit={handleFetch} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
                     Jira Base URL
-                    {usingServerBase && <span className="text-emerald-400 text-xs font-normal">· using default</span>}
                   </label>
                   <input
                     type="url"
-                    placeholder={serverDefaults?.baseUrl ? serverDefaults.baseUrl : 'https://yourcompany.atlassian.net'}
+                    placeholder="https://yourcompany.atlassian.net"
                     value={baseUrl}
                     onChange={e => setBaseUrl(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring"
@@ -197,20 +187,19 @@ export function JiraImportModal({ onImport, onClose }: JiraImportModalProps) {
                   </label>
                   <input
                     type="email"
-                    placeholder={serverDefaults?.email || 'you@company.com'}
+                    placeholder="you@company.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
                     API Token
-                    {usingServerToken && <span className="text-emerald-400 text-xs font-normal">· using default</span>}
                   </label>
                   <input
                     type="password"
-                    placeholder={usingServerToken ? '••••••••••••••• (server default)' : 'ATATT3xFfGF0...'}
+                    placeholder="ATATT3xFfGF0..."
                     value={token}
                     onChange={e => setToken(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring"

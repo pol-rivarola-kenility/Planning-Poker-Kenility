@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { getSocket, getOrCreateStableId } from '@/lib/socket-client'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+
+const JIRA_STORAGE_KEY = 'pp_jira_creds'
 
 export function CreateSessionForm() {
   const router = useRouter()
@@ -12,13 +14,45 @@ export function CreateSessionForm() {
   const [playerName, setPlayerName] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Jira (optional)
+  const [jiraOpen, setJiraOpen] = useState(false)
+  const [jiraBaseUrl, setJiraBaseUrl] = useState('')
+  const [jiraEmail, setJiraEmail] = useState('')
+  const [jiraToken, setJiraToken] = useState('')
+
+  // Pre-fill Jira fields from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(JIRA_STORAGE_KEY)
+      if (saved) {
+        const creds = JSON.parse(saved)
+        if (creds.baseUrl) setJiraBaseUrl(creds.baseUrl)
+        if (creds.email)   setJiraEmail(creds.email)
+        if (creds.token)   setJiraToken(creds.token)
+        setJiraOpen(true) // auto-expand if they already have creds
+      }
+    } catch {}
+  }, [])
+
+  function saveJiraCreds() {
+    try {
+      const baseUrl = jiraBaseUrl.trim()
+      const email   = jiraEmail.trim()
+      const token   = jiraToken.trim()
+      if (baseUrl || email || token) {
+        localStorage.setItem(JIRA_STORAGE_KEY, JSON.stringify({ baseUrl, email, token }))
+      }
+    } catch {}
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!sessionName.trim() || !playerName.trim()) return
     setLoading(true)
 
-    const socket = getSocket()
+    saveJiraCreds()
 
+    const socket = getSocket()
     const stableId = getOrCreateStableId()
 
     const doCreate = () => {
@@ -39,7 +73,6 @@ export function CreateSessionForm() {
       return
     }
 
-    // Wait for connection with a timeout
     const timeout = setTimeout(() => {
       socket.off('connect', doCreate)
       socket.off('connect_error', onError)
@@ -96,6 +129,76 @@ export function CreateSessionForm() {
             autoComplete="name"
             maxLength={30}
           />
+        </div>
+
+        {/* Jira — optional */}
+        <div className="border border-border rounded-xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setJiraOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            <span className="font-medium">
+              Jira integration
+              <span className="ml-2 text-xs font-normal opacity-60">optional</span>
+            </span>
+            {jiraOpen
+              ? <ChevronUp className="w-4 h-4" />
+              : <ChevronDown className="w-4 h-4" />
+            }
+          </button>
+
+          {jiraOpen && (
+            <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="jira-url">
+                  Base URL
+                </label>
+                <input
+                  id="jira-url"
+                  type="url"
+                  placeholder="https://yourcompany.atlassian.net"
+                  value={jiraBaseUrl}
+                  onChange={e => setJiraBaseUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring transition-all"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground" htmlFor="jira-email">
+                    Email
+                  </label>
+                  <input
+                    id="jira-email"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={jiraEmail}
+                    onChange={e => setJiraEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground" htmlFor="jira-token">
+                    API Token
+                  </label>
+                  <input
+                    id="jira-token"
+                    type="password"
+                    placeholder="ATATT3xFfGF0…"
+                    value={jiraToken}
+                    onChange={e => setJiraToken(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring transition-all"
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground/70">
+                Saved to your browser only — never sent to our server.
+              </p>
+            </div>
+          )}
         </div>
 
         <button

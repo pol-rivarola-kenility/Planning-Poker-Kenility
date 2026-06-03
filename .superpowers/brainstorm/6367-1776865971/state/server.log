@@ -1,0 +1,4 @@
+{"type":"server-started","port":51865,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:51865","screen_dir":"/Users/polrivarola/Desktop/projects/Personal/Planning-Poker-Kenility/.superpowers/brainstorm/6367-1776865971/content","state_dir":"/Users/polrivarola/Desktop/projects/Personal/Planning-Poker-Kenility/.superpowers/brainstorm/6367-1776865971/state"}
+{"type":"screen-added","file":"/Users/polrivarola/Desktop/projects/Personal/Planning-Poker-Kenility/.superpowers/brainstorm/6367-1776865971/content/drag-design.html"}
+{"type":"screen-added","file":"/Users/polrivarola/Desktop/projects/Personal/Planning-Poker-Kenility/.superpowers/brainstorm/6367-1776865971/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}

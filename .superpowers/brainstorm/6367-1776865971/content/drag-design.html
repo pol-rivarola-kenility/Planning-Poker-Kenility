@@ -1,0 +1,116 @@
+<h2>Drag & Drop Design — Ticket Queue</h2>
+<p class="subtitle">How the queue will look and behave for the host vs. participants</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Host view (can drag)</div>
+    <div class="mockup-body" style="padding: 12px; background: #0f1117; border-radius: 8px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <span style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:#6b7280;">Ticket Queue</span>
+        <span style="font-size:10px; color:#6b728080;">2 remaining</span>
+      </div>
+
+      <!-- Done ticket -->
+      <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; border:1px solid #374151; background:#1f2937; margin-bottom:6px; opacity:.7;">
+        <span style="color:#777; font-size:11px; cursor:grab; padding-top:1px;">⠿</span>
+        <span style="color:#34d399; font-size:11px; margin-top:1px;">✓</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:10px; font-family:monospace; color:#818cf8; margin-bottom:2px;">PP-01</div>
+          <div style="font-size:11px; color:#9ca3af; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">User authentication flow</div>
+          <div style="font-size:11px; font-weight:700; color:#34d399; margin-top:2px;">→ 5 pts</div>
+        </div>
+      </div>
+
+      <!-- Current ticket -->
+      <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; border:1px solid #4f46e540; background:#4f46e515; margin-bottom:6px;">
+        <span style="color:#777; font-size:11px; cursor:grab; padding-top:1px;">⠿</span>
+        <span style="color:#818cf8; font-size:11px; margin-top:1px;">›</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:10px; font-family:monospace; color:#818cf8; margin-bottom:2px;">PP-02</div>
+          <div style="font-size:11px; color:#f3f4f6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Dashboard redesign</div>
+        </div>
+      </div>
+
+      <!-- Being dragged -->
+      <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; border:2px dashed #4f46e560; background:#4f46e508; margin-bottom:6px; position:relative;">
+        <div style="position:absolute; inset:0; border-radius:10px; background: linear-gradient(90deg,transparent,#4f46e510); pointer-events:none;"></div>
+        <span style="color:#818cf8; font-size:11px; cursor:grabbing; padding-top:1px;">⠿</span>
+        <span style="color:#6b7280; font-size:11px; margin-top:1px;">🕐</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:11px; color:#d1d5db; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">API rate limiting</div>
+          <div style="font-size:9px; color:#6b7280; margin-top:2px; font-style:italic;">↑ dragging…</div>
+        </div>
+      </div>
+
+      <!-- Drop placeholder -->
+      <div style="padding:6px 10px; border-radius:10px; border:1px dashed #4f46e540; background:transparent; margin-bottom:6px; height:40px;"></div>
+
+      <!-- Pending ticket -->
+      <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; border:1px solid #374151; background:#111827; margin-bottom:6px;">
+        <span style="color:#777; font-size:11px; cursor:grab; padding-top:1px;">⠿</span>
+        <span style="color:#4b5563; font-size:11px; margin-top:1px;">🕐</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:11px; color:#d1d5db; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mobile push notifications</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Participant view (read-only)</div>
+    <div class="mockup-body" style="padding: 12px; background: #0f1117; border-radius: 8px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <span style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:#6b7280;">Ticket Queue</span>
+        <span style="font-size:10px; color:#6b728080;">2 remaining</span>
+      </div>
+
+      <!-- Done ticket -->
+      <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; border:1px solid #374151; background:#1f2937; margin-bottom:6px; opacity:.7;">
+        <span style="color:#34d399; font-size:11px; margin-top:1px;">✓</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:10px; font-family:monospace; color:#818cf8; margin-bottom:2px;">PP-01</div>
+          <div style="font-size:11px; color:#9ca3af;">User authentication flow</div>
+          <div style="font-size:11px; font-weight:700; color:#34d399; margin-top:2px;">→ 5 pts</div>
+        </div>
+      </div>
+
+      <!-- Current -->
+      <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; border:1px solid #4f46e540; background:#4f46e515; margin-bottom:6px;">
+        <span style="color:#818cf8; font-size:11px; margin-top:1px;">›</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:10px; font-family:monospace; color:#818cf8; margin-bottom:2px;">PP-02</div>
+          <div style="font-size:11px; color:#f3f4f6;">Dashboard redesign</div>
+        </div>
+      </div>
+
+      <!-- Pending -->
+      <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; border:1px solid #374151; background:#111827; margin-bottom:6px;">
+        <span style="color:#4b5563; font-size:11px; margin-top:1px;">🕐</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:11px; color:#d1d5db;">API rate limiting</div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; border:1px solid #374151; background:#111827; margin-bottom:6px;">
+        <span style="color:#4b5563; font-size:11px; margin-top:1px;">🕐</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:11px; color:#d1d5db;">Mobile push notifications</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; padding:8px; border-radius:8px; background:#1f2937; border:1px solid #374151;">
+        <p style="font-size:10px; color:#6b7280; text-align:center; margin:0;">Reordering is broadcast live — participants see the list update as the PM drags.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;">
+  <h3>Behavior summary</h3>
+  <ul style="font-size:13px; color:#9ca3af; line-height:1.8; padding-left:20px;">
+    <li><strong style="color:#d1d5db;">Drag handle (⠿)</strong> — grip icon appears on the left, host-only. Initiates drag; avoids conflict with jump-to-ticket clicks.</li>
+    <li><strong style="color:#d1d5db;">All tickets draggable</strong> — done, current, and pending. <code style="font-size:11px; background:#1f2937; padding:1px 4px; border-radius:3px;">currentTicketIndex</code> is recalculated server-side after reorder.</li>
+    <li><strong style="color:#d1d5db;">Optimistic UI</strong> — host sees the new order immediately; socket broadcast syncs all participants within ~50ms.</li>
+    <li><strong style="color:#d1d5db;">No drag for participants</strong> — they receive state updates and see the list re-animate into the new order via Framer Motion layout animations.</li>
+  </ul>
+</div>
