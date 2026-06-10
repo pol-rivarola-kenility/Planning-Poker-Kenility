@@ -5,8 +5,34 @@ on:
     branches: [main]
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: |
+            .next/
+            public/
+          retention-days: 1
+
   deploy:
     runs-on: self-hosted
+    needs: build
     steps:
       - name: Pull latest code
         run: |
@@ -16,13 +42,15 @@ jobs:
             git clone https://github.com/pol-rivarola-kenility/Planning-Poker-Kenility.git ~/planning-poker
           fi
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install production dependencies
+        run: npm ci --omit=dev
         working-directory: /home/ubuntu/planning-poker
 
-      - name: Build
-        run: npm run build
-        working-directory: /home/ubuntu/planning-poker
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: /home/ubuntu/planning-poker
 
       - name: Reload app
         run: pm2 reload ecosystem.config.js --env production
