@@ -1,21 +1,24 @@
 name: Deploy to AWS
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/${{ secrets.EC2_USER }}/planning-poker
-            git pull origin main
-            npm ci --omit=dev
-            npm run build
-            pm2 reload ecosystem.config.js --env production
+      - name: Pull latest code
+        run: git -C ~/planning-poker pull origin main
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+        working-directory: /home/ubuntu/planning-poker
+
+      - name: Build
+        run: npm run build
+        working-directory: /home/ubuntu/planning-poker
+
+      - name: Reload app
+        run: pm2 reload ecosystem.config.js --env production
+        working-directory: /home/ubuntu/planning-poker
