@@ -4,10 +4,10 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Copy, Check, Spade } from 'lucide-react'
+import { Copy, Check, Spade, Settings2 } from 'lucide-react'
 
 import { getSocket, getOrCreateStableId } from '@/lib/socket-client'
-import type { SessionState, CardValue } from '@/lib/types'
+import type { SessionState, CardValue, CardConfig } from '@/lib/types'
 
 import { JoinModal } from '@/components/session/JoinModal'
 import { JiraImportModal } from '@/components/session/JiraImportModal'
@@ -18,6 +18,7 @@ import { CardGrid } from './CardGrid'
 import { VoteResults } from './VoteResults'
 import { HostControls } from './HostControls'
 import { TicketQueue } from './TicketQueue'
+import { ScaleSettingsDialog } from './ScaleSettingsDialog'
 
 interface GameBoardProps {
   sessionId: string
@@ -35,6 +36,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const [joining, setJoining] = useState(false)
   const [initializing, setInitializing] = useState(true) // true while we check localStorage
   const [showJira, setShowJira] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [copied, setCopied] = useState(false)
   const [myVote, setMyVote] = useState<CardValue | undefined>()
   const [connectionError, setConnectionError] = useState('')
@@ -196,6 +198,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     socket.emit('game:reorder-tickets', { ticketIds })
   }
 
+  function updateScale(scale: CardConfig[]) {
+    socket.emit('game:update-scale', { scale })
+  }
+
   async function copyLink() {
     const url = window.location.href
     try {
@@ -265,6 +271,17 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         )}
       </AnimatePresence>
 
+      {/* Scale Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <ScaleSettingsDialog
+            currentScale={session?.scale}
+            onApply={updateScale}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -315,6 +332,18 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             {/* Send to Jira — shown when there are estimated Jira tickets */}
             {session && (
               <SendToJiraButton tickets={session.tickets} />
+            )}
+
+            {/* Scale settings — host only */}
+            {isHost && (
+              <button
+                onClick={() => setShowSettings(true)}
+                title="Estimation scale settings"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-medium transition-all"
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Scale</span>
+              </button>
             )}
 
             {/* Copy link */}
@@ -410,6 +439,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                   <CardGrid
                     selectedValue={myVote}
                     onSelect={castVote}
+                    scale={session.scale}
                   />
                 </div>
               )}
@@ -422,6 +452,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                     onReveal={reveal}
                     onNextTicket={nextTicket}
                     onRestartTicket={restartTicket}
+                    scale={session.scale}
                   />
                 </div>
               )}

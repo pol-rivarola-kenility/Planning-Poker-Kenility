@@ -1,6 +1,11 @@
-export type CardValue = '1' | '2' | '3' | '5' | '8' | '13' | '21' | '?' | '☕'
+export type CardValue = string
 
 export const CARD_VALUES: CardValue[] = ['1', '2', '3', '5', '8', '13', '21', '?', '☕']
+
+export interface CardConfig {
+  value: string
+  tooltip: string
+}
 
 export interface Player {
   id: string
@@ -30,6 +35,7 @@ export interface SessionState {
   currentTicketIndex: number
   votesRevealed: boolean
   average?: number | null
+  scale?: CardConfig[] | null
 }
 
 // Socket event types
@@ -56,6 +62,7 @@ export interface ClientToServerEvents {
   'game:remove-ticket': (payload: { ticketId: string }) => void
   'game:jump-to-ticket': (payload: { ticketIndex: number }) => void
   'game:reorder-tickets': (payload: { ticketIds: string[] }) => void
+  'game:update-scale': (payload: { scale: CardConfig[] }) => void
 }
 
 export interface JiraTicket {

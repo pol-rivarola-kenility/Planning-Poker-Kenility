@@ -95,6 +95,7 @@ function toClientState(session) {
     currentTicketIndex: session.currentTicketIndex,
     votesRevealed: session.votesRevealed,
     average: session.votesRevealed ? calculateAverage(session.votes) : null,
+    scale: session.scale || null,
   }
 }
 
@@ -154,6 +155,7 @@ app.prepare().then(() => {
         votes: {},
         votesRevealed: false,
         status: 'waiting',
+        scale: null,
       }
 
       sessions.set(sessionId, session)
@@ -393,6 +395,23 @@ app.prepare().then(() => {
         session.status = 'voting'
       }
 
+      broadcastState(io, sessionId)
+    })
+
+    // ── Update estimation scale (host only) ────────────────────────────────
+    socket.on('game:update-scale', ({ scale }) => {
+      const { sessionId, playerId } = socket.data
+      const session = sessions.get(sessionId)
+      if (!session || session.hostId !== playerId) return
+      if (!Array.isArray(scale)) return
+
+      const validScale = scale
+        .filter(c => typeof c.value === 'string' && c.value.trim())
+        .map(c => ({ value: c.value.trim(), tooltip: typeof c.tooltip === 'string' ? c.tooltip.trim() : '' }))
+
+      if (validScale.length === 0) return
+
+      session.scale = validScale
       broadcastState(io, sessionId)
     })
 

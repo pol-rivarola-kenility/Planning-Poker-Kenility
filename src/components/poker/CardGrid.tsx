@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion'
 import { PokerCard } from './PokerCard'
-import { CARD_VALUES, type CardValue } from '@/lib/types'
+import { CARD_VALUES, type CardValue, type CardConfig } from '@/lib/types'
 
-const CARD_TOOLTIPS: Partial<Record<CardValue, string>> = {
+const DEFAULT_TOOLTIPS: Record<string, string> = {
   '1':  'Less than 2 hours',
   '2':  'Half a day',
   '3':  'Up to two days',
@@ -20,12 +20,17 @@ interface CardGridProps {
   selectedValue?: CardValue
   onSelect: (value: CardValue) => void
   disabled?: boolean
+  scale?: CardConfig[] | null
 }
 
-export function CardGrid({ selectedValue, onSelect, disabled }: CardGridProps) {
+export function CardGrid({ selectedValue, onSelect, disabled, scale }: CardGridProps) {
+  const entries: { value: string; tooltip: string }[] = scale && scale.length > 0
+    ? scale
+    : CARD_VALUES.map(v => ({ value: v, tooltip: DEFAULT_TOOLTIPS[v] ?? '' }))
+
   return (
     <div className="flex flex-wrap justify-center gap-3 py-2">
-      {CARD_VALUES.map((value, i) => (
+      {entries.map(({ value, tooltip }, i) => (
         <motion.div
           key={value}
           initial={{ opacity: 0, y: 20 }}
@@ -47,11 +52,11 @@ export function CardGrid({ selectedValue, onSelect, disabled }: CardGridProps) {
           </motion.div>
 
           {/* Tooltip */}
-          {CARD_TOOLTIPS[value] && (
+          {tooltip && (
             <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 z-50
               opacity-0 group-hover/card:opacity-100 transition-opacity duration-150 whitespace-nowrap">
               <div className="bg-popover border border-border text-popover-foreground text-xs font-medium px-2.5 py-1.5 rounded-lg shadow-lg">
-                {CARD_TOOLTIPS[value]}
+                {tooltip}
               </div>
               {/* Arrow */}
               <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0

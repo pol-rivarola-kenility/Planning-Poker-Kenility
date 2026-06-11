@@ -4,18 +4,25 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, ArrowRight, RotateCcw, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { SessionState, CardValue } from '@/lib/types'
+import type { SessionState, CardValue, CardConfig } from '@/lib/types'
 import { CARD_VALUES } from '@/lib/types'
+
+const NON_SCORE_DEFAULTS = ['?', '☕']
 
 interface HostControlsProps {
   session: SessionState
   onReveal: () => void
   onNextTicket: (finalScore?: string) => void
   onRestartTicket: () => void
+  scale?: CardConfig[] | null
 }
 
-export function HostControls({ session, onReveal, onNextTicket, onRestartTicket }: HostControlsProps) {
+export function HostControls({ session, onReveal, onNextTicket, onRestartTicket, scale }: HostControlsProps) {
   const [finalScore, setFinalScore] = useState<string>('')
+
+  const scoreOptions: string[] = scale && scale.length > 0
+    ? scale.filter(c => !isNaN(parseFloat(c.value))).map(c => c.value)
+    : CARD_VALUES.filter(v => !NON_SCORE_DEFAULTS.includes(v))
 
   const votedCount = session.players.filter(p => p.hasVoted && p.isOnline).length
   const onlineCount = session.players.filter(p => p.isOnline).length
@@ -74,7 +81,7 @@ export function HostControls({ session, onReveal, onNextTicket, onRestartTicket 
             Final estimate
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {CARD_VALUES.filter(v => !['?', '☕'].includes(v)).map(v => (
+            {scoreOptions.map(v => (
               <button
                 key={v}
                 onClick={() => setFinalScore(finalScore === v ? '' : v)}
@@ -89,7 +96,7 @@ export function HostControls({ session, onReveal, onNextTicket, onRestartTicket 
               </button>
             ))}
           </div>
-          {displayAverage && !CARD_VALUES.includes(displayAverage as CardValue) && (
+          {displayAverage && !scoreOptions.includes(displayAverage) && (
             <p className="text-xs text-center text-muted-foreground">
               Average is {displayAverage} — pick the closest estimate above
             </p>
