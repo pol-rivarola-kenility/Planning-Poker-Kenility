@@ -197,10 +197,27 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   }
 
   async function copyLink() {
-    await navigator.clipboard.writeText(window.location.href)
-    setCopied(true)
-    toast.success('Session link copied!')
-    setTimeout(() => setCopied(false), 2000)
+    const url = window.location.href
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+      } else {
+        // Fallback for HTTP (non-secure) contexts
+        const el = document.createElement('textarea')
+        el.value = url
+        el.style.position = 'fixed'
+        el.style.opacity = '0'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+      }
+      setCopied(true)
+      toast.success('Session link copied!')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error('Could not copy link — please copy the URL manually')
+    }
   }
 
   // ─── Render ────────────────────────────────────────────────────────────────
